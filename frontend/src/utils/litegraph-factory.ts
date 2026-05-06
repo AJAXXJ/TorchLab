@@ -20,6 +20,8 @@ const DEFAULT_COLORS = { color: '#444', bgcolor: '#222' }
 /**
  * 根据后端元数据动态创建 LiteGraph 节点类.
  * 零硬编码 — 新增后端节点类型前端自动可见.
+ *
+ * 也被 LiteGraphCanvas 用于动态注册 Group 创建的组合节点.
  */
 export function createLiteGraphNodeClass(nodeType: string, meta: NodeMeta): new () => LGraphNode {
   const catColors = CATEGORY_COLORS[meta.category] || DEFAULT_COLORS
@@ -52,8 +54,13 @@ export function createLiteGraphNodeClass(nodeType: string, meta: NodeMeta): new 
       })
     }
 
+    // LiteGraph addWidget stores default in widget.value but does NOT
+    // write to this.properties — so we must sync manually for code gen.
+    ;(this as any).properties = {}
+
     for (const [key, def] of Object.entries(meta.params_schema)) {
-      const label = def.description || key
+      const rawLabel = def.description || key
+      const label = rawLabel.length > 14 ? rawLabel.slice(0, 13) + '…' : rawLabel
       const dflt = def.default
 
       switch (def.type) {
@@ -81,9 +88,13 @@ export function createLiteGraphNodeClass(nodeType: string, meta: NodeMeta): new 
         default:
           this.addWidget('text', label, String(dflt), key)
       }
+      ;(this as any).properties[key] = dflt
     }
 
-    this.size[0] = Math.max(this.size[0], 210)
+    // Dynamic minimum width — more params need wider node to avoid label/value overlap
+    const widgetCount = Object.keys(meta.params_schema).length
+    const minW = widgetCount > 5 ? 250 : widgetCount > 3 ? 230 : 210
+    this.size[0] = Math.max(this.size[0], minW)
 
     // UE5 Blueprint-style rendering callbacks
     this.onDrawBackground = drawUE5Background

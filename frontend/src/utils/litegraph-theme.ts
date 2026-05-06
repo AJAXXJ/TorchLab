@@ -55,6 +55,10 @@ export function drawUE5Background(this: DrawContext, ctx: CanvasRenderingContext
   const node = this
   const w = node.size[0], h = node.size[1]
 
+  // When collapsed, LiteGraph's drawNodeShape already renders the correct
+  // header-sized shape. Our full-size body + shadow would overwrite it.
+  if ((node as any).flags?.collapsed) return
+
   ctx.save()
   ctx.shadowColor = 'rgba(0, 0, 0, 0.45)'
   ctx.shadowBlur = 12
@@ -72,7 +76,13 @@ export function drawUE5Background(this: DrawContext, ctx: CanvasRenderingContext
  */
 export function drawUE5Foreground(this: DrawContext, ctx: CanvasRenderingContext2D): void {
   const node = this
-  const w = node.size[0], h = node.size[1]
+  const n = node as any
+  const collapsed = n.flags?.collapsed
+
+  const NODE_TITLE_HEIGHT = 30
+  const w = collapsed ? (n._collapsed_width || node.size[0]) : node.size[0]
+  const h = collapsed ? NODE_TITLE_HEIGHT : node.size[1]
+  const y0 = collapsed ? -NODE_TITLE_HEIGHT + 1.5 : 1.5
 
   // Selection glow border (UE5-style gold)
   if (node.is_selected) {
@@ -83,7 +93,7 @@ export function drawUE5Foreground(this: DrawContext, ctx: CanvasRenderingContext
     ctx.shadowOffsetY = 0
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)'
     ctx.lineWidth = 2
-    roundRectPath(ctx, 1.5, 1.5, w - 3, h - 3, 7)
+    roundRectPath(ctx, 1.5, y0, w - 3, h - 3, 7)
     ctx.stroke()
     ctx.restore()
   }
@@ -91,7 +101,7 @@ export function drawUE5Foreground(this: DrawContext, ctx: CanvasRenderingContext
   // Hover highlight
   if (node.mouseOver && !node.is_selected) {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.04)'
-    roundRectPath(ctx, 0.5, 0.5, w, h, 8)
+    roundRectPath(ctx, 0.5, y0 - 1, w, h - 1, 8)
     ctx.fill()
   }
 }

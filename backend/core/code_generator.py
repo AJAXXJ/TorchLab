@@ -45,7 +45,8 @@ def generate_code(graph: dict, shapes: dict | None = None) -> str:
             continue
         line = nd["instance"].to_pytorch_init(layer_names[nid], nd["properties"])
         if line.strip():
-            init_lines.append(f"        {line}")
+            for subline in line.split("\n"):
+                init_lines.append(f"        {subline}")
 
     # ── forward ──
     forward_lines: list[str] = []
@@ -70,7 +71,8 @@ def generate_code(graph: dict, shapes: dict | None = None) -> str:
             layer_names.get(nid, ""), in_vars, output_vars, nd["properties"]
         )
         if line.strip():
-            forward_lines.append(f"        {line}")
+            for subline in line.split("\n"):
+                forward_lines.append(f"        {subline}")
 
     # return — resolve output node source port indices
     return_var_parts = []

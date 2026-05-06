@@ -14,6 +14,10 @@ import nodes  # noqa: F401 — 触发所有 @register_node
 from api.routers import nodes as nodes_router
 from api.routers import generate as generate_router
 from api.routers import custom as custom_router
+from api.routers import composite as composite_router
+from controllers.composite_controller import load_persisted_composites
+
+load_persisted_composites()
 
 app = FastAPI(title="TorchLab")
 
@@ -27,6 +31,7 @@ app.add_middleware(
 app.include_router(nodes_router.router)
 app.include_router(generate_router.router)
 app.include_router(custom_router.router)
+app.include_router(composite_router.router)
 
 if __name__ == "__main__":
     import uvicorn

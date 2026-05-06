@@ -59,3 +59,17 @@ class CustomNodeInfo(BaseModel):
 
 class CustomNodeRegisterData(BaseModel):
     nodes: list[CustomNodeInfo]
+
+
+class CompositeExternalPort(BaseModel):
+    node_id: int
+    port_idx: int = 0
+    label: str = ""
+
+
+class CompositeCreateRequest(BaseModel):
+    name: str = Field(..., description="组合节点名称")
+    subgraph_nodes: list[dict[str, Any]]
+    subgraph_links: list[list[Any]]
+    external_inputs: list[CompositeExternalPort] = Field(default_factory=list)
+    external_outputs: list[CompositeExternalPort] = Field(default_factory=list)

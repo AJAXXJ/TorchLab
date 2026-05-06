@@ -34,15 +34,41 @@ function onClear() {
   canvasRef.value?.clearGraph()
   code.value = ''; errors.value = []; showCode.value = false; selectedNode.value = null
 }
+function onSave() {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  const json = canvas.saveGraph()
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `torchlab-graph-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+function onLoad(json: string) {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  try {
+    canvas.loadGraph(json)
+    code.value = ''
+    errors.value = []
+    showCode.value = false
+    selectedNode.value = null
+  } catch (e) {
+    alert('Failed to load graph: ' + (e as Error).message)
+  }
+}
 </script>
 
 <template>
   <div class="h-screen flex flex-col bg-[var(--color-surface-deep)]">
-    <AppHeader :generating="generating" @generate="onGenerate" @clear="onClear" />
+    <AppHeader :generating="generating" @generate="onGenerate" @clear="onClear" @save="onSave" @load="onLoad" />
     <div class="flex-1 relative overflow-hidden">
       <LiteGraphCanvas
         ref="canvasRef" :metas="metas" :active-node-id="selectedNode?.id ?? null"
         @node-selected="onNodeSelected" @node-deselected="onNodeDeselected"
+        @refresh-nodes="fetchNodes"
       />
       <NodePalette
         :grouped="groupedMetas()" :loading="loading" :error="error"

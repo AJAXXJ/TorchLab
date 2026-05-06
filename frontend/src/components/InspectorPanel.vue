@@ -21,7 +21,14 @@ watch(() => props.selectedNode, (n) => { if (n) isOpen.value = true })
 watch(() => props.showCode, (s) => { if (s) isOpen.value = true })
 
 const editValues = ref<Record<string, unknown>>({})
-watch(() => props.selectedNode, (n) => { if (n) editValues.value = { ...n.properties } }, { immediate: true })
+watch(() => props.selectedNode, (n) => {
+  if (!n) return
+  const merged: Record<string, unknown> = {}
+  for (const [key, def] of Object.entries(n.meta.params_schema)) {
+    merged[key] = (key in (n.properties || {})) ? n.properties[key] : def.default
+  }
+  editValues.value = merged
+}, { immediate: true })
 
 function onParamChange(key: string, value: unknown) {
   if (!props.selectedNode) return
@@ -87,7 +94,11 @@ const sortedParams = computed(() =>
             Parameters
           </h3>
           <div v-for="[key, def] in sortedParams" :key="key"
-               class="flex items-center justify-between mb-1">
+               :class="[
+                 'mb-1',
+                 (def.type === 'string' && (key === 'expression' || key === 'imports'))
+                   ? 'flex-col' : 'flex items-center justify-between'
+               ]">
             <label class="text-[11px] text-[#bbb] flex-shrink-0">{{ key }}</label>
 
             <!-- int -->
@@ -122,14 +133,25 @@ const sortedParams = computed(() =>
               ></span>
             </button>
             <!-- string -->
-            <input
-              v-else-if="def.type === 'string'"
-              type="text" :value="editValues[key]"
-              class="w-[110px] px-1.5 py-1 text-[11px] bg-[#222] border border-[#333]
-                     rounded text-[#ccc] outline-none
-                     focus:border-[var(--color-accent)]"
-              @input="onParamChange(key, ($event.target as HTMLInputElement).value)"
-            />
+            <template v-else-if="def.type === 'string'">
+              <div v-if="key === 'expression' || key === 'imports'" class="w-full mt-1">
+                <textarea
+                  :value="editValues[key]" rows="3"
+                  class="w-full px-1.5 py-1 text-[11px] font-mono bg-[#111] border border-[#333]
+                         rounded text-[#ccc] outline-none resize-y
+                         focus:border-[var(--color-accent)]"
+                  @input="onParamChange(key, ($event.target as HTMLTextAreaElement).value)"
+                ></textarea>
+              </div>
+              <input
+                v-else
+                type="text" :value="editValues[key]"
+                class="w-[110px] px-1.5 py-1 text-[11px] bg-[#222] border border-[#333]
+                       rounded text-[#ccc] outline-none
+                       focus:border-[var(--color-accent)]"
+                @input="onParamChange(key, ($event.target as HTMLInputElement).value)"
+              />
+            </template>
             <!-- choice -->
             <select
               v-else-if="def.type === 'choice'"
